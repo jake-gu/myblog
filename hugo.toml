@@ -1,4 +1,4 @@
-baseURL = "http://132.145.109.172/"
+baseURL = "https://laogutalksai.duckdns.org/"
 languageCode = 'zh-cn'
 title = '老顾聊AI | 实战 AI 与自动化搞钱生产力'
 theme = 'PaperMod'
