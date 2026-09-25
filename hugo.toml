@@ -1,0 +1,58 @@
+baseURL = "http://132.145.109.172/"
+languageCode = 'zh-cn'
+title = '老顾聊AI | 实战 AI 与自动化搞钱生产力'
+theme = 'PaperMod'
+
+[params]
+  env = 'production'
+  title = '老顾聊AI'
+  description = '不讲虚的，不买贵的。老顾带你用家用硬件玩转实战 AI 与自动化搞钱生产力！'
+  author = '老顾'
+  ShowReadingTime = true
+  ShowShareButtons = true
+  ShowPostNavLinks = true
+  ShowBreadCrumbs = true
+  ShowCodeCopyButtons = true
+
+  [params.profileMode]
+    enabled = false
+
+  [params.homeInfoParams]
+    Title = "老顾聊AI 👋"
+    Content = """
+不讲虚的，不买贵的。老顾带你用家用硬件玩转实战 AI 与自动化搞钱生产力！
+
+🛠️ **私有化与本地算力**：飞牛OS/群晖家用 NAS、Sub2API 免费接口网关、单卡跑大模型实战  
+🎙️ **多模态与克隆黑科技**：零成本本地声音克隆、代码生成无版权原创视频  
+🤖 **Agent 智能体与自动化**：打造 24 小时运转的 AI 自媒体与自动化流水线  
+💡 **商业变现与避坑指南**：哪些 AI 项目真的能赚到美金？老顾替你实测排雷  
+
+*电脑是工具，AI 是杠杆。打破信息差，把 AI 变成最趁手的生产力武器！*
+"""
+
+  [[params.socialIcons]]
+    name = "youtube"
+    url = "https://www.youtube.com"
+    title = "YouTube 频道：老顾聊AI"
+
+  [[params.socialIcons]]
+    name = "github"
+    url = "https://github.com"
+    title = "开源项目与脚本"
+
+[menu]
+  [[menu.main]]
+    identifier = "posts"
+    name = "教程归档"
+    url = "/posts/"
+    weight = 10
+  [[menu.main]]
+    identifier = "tags"
+    name = "分类标签"
+    url = "/tags/"
+    weight = 20
+  [[menu.main]]
+    identifier = "about"
+    name = "关于老顾"
+    url = "/about/"
+    weight = 30

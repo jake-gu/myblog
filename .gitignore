@@ -1,0 +1,11 @@
+# Hugo 生成物（不入库）
+public/
+resources/
+.hugo_build.lock
+.hugo_build.lock.*
+
+# 日志与临时文件
+*.log
+arm_launch.log
+.DS_Store
+*.tmp
