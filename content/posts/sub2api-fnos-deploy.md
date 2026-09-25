@@ -1,6 +1,6 @@
 ---
 title: "【飞牛OS 实战】Token 用不起？部署 Sub2API 把闲鱼 5 元 Gemini Pro 变成无限量私有网关"
-date: 2026-09-25T10:00:00-07:00
+date: 2026-09-25T02:20:00-07:00
 draft: false
 tags: ["飞牛OS", "Sub2API", "Docker", "Gemini", "反重力", "NAS", "AI网关"]
 summary: "保姆级图文全流程：从闲鱼 5 元淘 Gemini Pro 账号、飞牛 OS (fnOS) 目录赋权与 Docker Compose 容器编排部署，到 Sub2API 控制台初始化、Jack 分组挂载 Antigravity 反重力节点、令牌签发及客户端（沉浸式翻译/Claude Code/NextChat）无缝调用全实操。"
