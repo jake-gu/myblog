@@ -1,12 +1,12 @@
 ---
-title: "【飞牛OS 实战】Token 用不起？部署 Sub2API 把订阅变私有网关（含应用卡死/自启/权限排查实录）"
+title: "【飞牛OS 实战】Token 用不起？部署 Sub2API 把订阅变私有网关（闲鱼5元买号+反重力节点挂载）"
 date: 2026-09-24T22:45:00-07:00
 draft: false
 tags: ["飞牛OS", "Sub2API", "Docker", "AI", "NAS", "Gemini", "DeepSeek", "系统运维", "故障排查"]
-summary: "硬核保姆级实战：在飞牛 OS (fnOS) 上用 Docker 部署 Sub2API 网关，把网页端 Gemini / Claude 订阅逆向封装为标准 OpenAI /v1 接口；并附赠飞牛 OS 应用中心实操排障全记录（进程强杀、状态锁解除、禁止开机自启、mode 777 凭据权限修复）。"
+summary: "硬核保姆级实战：在飞牛 OS (fnOS) 上用 Docker 部署 Sub2API 网关，把网页端 Gemini / Claude 订阅逆向封装为标准 OpenAI /v1 接口。包含完整 docker-compose 配置、闲鱼5元号购买与反重力节点真实后台配置实录。"
 ---
 
-> 保姆级实操教程 · 订阅转私有网关 · 飞牛 OS 底层运维排障实录 · 附完整 docker-compose 配置
+> 保姆级实操教程 · 订阅转私有网关 · 附完整 docker-compose 配置
 
 ---
 
@@ -25,7 +25,7 @@ summary: "硬核保姆级实战：在飞牛 OS (fnOS) 上用 Docker 部署 Sub2A
 
 **Sub2API 就是来解决这事的。** 它能把你网页端的订阅会话，"逆向"包装成标准的 OpenAI `/v1` 接口。任何支持 OpenAI 协议的工具，都能无缝接进来。
 
-这篇博客，我带你从零开始，在**飞牛 OS（fnOS）**上把整套东西搭起来；文末还整理了飞牛系统深度排查与权限避坑指南（涵盖进程管理、应用卡死解除、自启控制与凭据权限修复）。
+这篇博客，我带你从零开始，在**飞牛 OS（fnOS）**上把整套东西搭起来。
 
 ---
 
@@ -300,112 +300,7 @@ claude "分析仓库结构并补充单元测试"
 
 ---
 
-## 八、飞牛 OS 进阶实操与排障手册（系统底层运维实录）
-
-在飞牛 OS 上运行 AI 工具与应用中心程序时，你可能会遇到**应用卡在启用中无法停止、开机自动拉起、或者是像 DeepSeek Harness / DSH 等应用由于凭据权限严格断言（mode 777）而秒退**的情况。以下整理自真实实机排查经验，供所有飞牛玩家参考：
-
-### 1. 应用中心卡在“启用中”转圈，界面无法点击停止？
-
-飞牛 OS 应用中心界面有时因启动钩子未返回而卡在“启用中”，此时前端按钮不可点。
-
-**排查与解决**：
-1. **SSH 登录飞牛**：`ssh jack@10.0.0.56`
-2. **检查 systemd 服务**：
-   ```bash
-   systemctl list-units --type=service | grep -iE "harness|sub2api|app"
-   sudo systemctl stop <服务名>
-   ```
-3. **若提示 `Unit not loaded`（非标准服务托管）**：说明是由飞牛框架（`trim_app`）直接派生的后台任务，直接按关键词抓取并强杀进程：
-   ```bash
-   ps aux | grep -E "harness|dsh|sub2api" | grep -v grep
-   sudo pkill -9 -f harness
-   sudo pkill -9 -f dsh
-   ```
-4. **后台无进程但网页仍在转圈（清除状态锁）**：
-   飞牛应用守护进程在等待超时或残留了状态锁文件，执行重启管理服务并清理锁：
-   ```bash
-   sudo systemctl restart trim_appcenter trim_app_daemon 2>/dev/null || sudo systemctl restart trim*app* 2>/dev/null
-   sudo rm -f /var/run/trim*app*.lock /tmp/trim*app*.lock 2>/dev/null
-   ```
-   刷新浏览器（Ctrl + F5），前端即可恢复正常控制状态。
-
----
-
-### 2. 飞牛 OS 应用目录结构与禁止开机自启
-
-飞牛 OS 应用通常存放于 `/vol1/` 主存储卷下：
-- `@appmeta/`：存放应用元数据及配置声明（包含自启配置）
-- `@appconf/`：应用运行时生成的配置
-- `@apphome/` 或 `@appcenter/`：主程序和启动/停止控制脚本
-- `@appshare/`：持久化数据与共享资源
-
-**若图形界面关闭自启不生效，可在终端彻底封锁**：
-```bash
-# 1. 查找应用相关目录
-find /vol* -maxdepth 3 -type d -name "*harness*" 2>/dev/null
-
-# 2. 将元数据中的 autostart 参数设为 false
-sed -i -E 's/"(auto_start|autostart)":\s*true/"": false/g' /vol1/@appmeta/*harness*/* /vol1/@appconf/*harness*/* 2>/dev/null
-
-# 3. 封禁启动入口脚本（最稳妥）
-for file in /vol1/@appcenter/deepseek-harness/*.sh; do
-  [ -f "$file" ] && mv "$file" "${file}.disabled"
-done
-
-# 重启管理中心生效
-systemctl restart trim_appcenter 2>/dev/null
-```
-
----
-
-### 3. 外部访问与安全可信白名单（Settings unavailable 报错）
-
-在部分 AI 应用（如 DSH）的 Models 页面若提示 `settings are unavailable in this browser`：
-- **原因**：程序默认仅监听 `127.0.0.1:3080`，由飞牛前端反向代理通过 iframe 嵌入；若未配置可信域名/IP 白名单，后端接口会直接拦截。
-- **解决规则**：
-  - 监听地址：保持 `127.0.0.1` 内部监听
-  - **可信访问地址**：必须填入你平时在浏览器中访问飞牛的地址和端口（无需 `http://`，逗号分隔），例如：
-    ```text
-    10.0.0.56:5666, 10.0.0.56
-    ```
-
----
-
-### 4. 关键踩坑：凭据权限 `mode 777` 导致应用秒退（chmod 600 修复）
-
-很多开发者习惯性给目录执行 `chmod -R 777`，但部分严格遵循 Linux 安全规范的 AI 工具（例如读取 `.credentials.yaml`、私钥、Token 的程序）在启动时会进行安全断言：
-
-```
-credentials-local: /vol1/@appshare/DeepSeekHarness/.dsh/.credentials.yaml is readable beyond its owner (mode 777); 
-run "chmod 600 /vol1/@appshare/DeepSeekHarness/.dsh/.credentials.yaml" before starting again
-[Runner] dsh 进程退出，退出码: 1, 信号: null
-```
-
-**原因分析**：
-飞牛在 `@appshare` 下创建的文件如果开放了过大权限（777），程序会认为存在同主机其他用户窥探凭据的泄露风险，从而主动退出拒绝执行。
-
-**✅ 正确修复步骤**：
-```bash
-# 1. 将凭据文件权限强制收紧为仅所有者可读写 (600)
-chmod 600 /vol1/@appshare/DeepSeekHarness/.dsh/.credentials.yaml
-
-# 2. 将配置目录权限收紧为 700
-chmod 700 /vol1/@appshare/DeepSeekHarness/.dsh
-
-# 3. 验证权限
-ls -l /vol1/@appshare/DeepSeekHarness/.dsh/.credentials.yaml
-# 输出必须为：-rw------- 1 ...
-
-# 4. 恢复此前重命名的启动脚本并启动应用
-for file in /vol1/@appcenter/deepseek-harness/*.disabled; do
-  [ -f "$file" ] && mv "$file" "${file%.disabled}"
-done
-```
-在飞牛网页中心点击启动，应用即可秒级恢复常驻运行（状态显示绿色运行中）。
-
----
-
-## 九、总结与运维常用速查
+## 八、总结与日常运维速查
 
 | 场景 | 命令 / 操作 |
 | :--- | :--- |
